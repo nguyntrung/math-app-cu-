@@ -1,6 +1,6 @@
 <?php
 $host = 'localhost';
-$dbname = 'ql_toan';
+$dbname = 'quanlyhoctoan';
 $username = 'root';
 $password = '';
 

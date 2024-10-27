@@ -17,8 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login'])) {
 
         if ($user && password_verify($matKhau, $user['MatKhau'])) {
             $_SESSION['MaNguoiDung'] = $user['MaNguoiDung'];
-            $_SESSION['HoTen'] = $user['HoTen']; // Lưu họ tên vào session
-            header('Location: ../public/index.php');
+            $_SESSION['HoTen'] = $user['HoTen'];
+            $_SESSION['VaiTro'] = $user['VaiTro'];
+
+            if ($user['VaiTro'] === 'QuanLy') {
+                header('Location: ../public/admin/admin.php');
+            } else {
+                header('Location: ../public/index.php');
+            }
             exit();
         } else {
             $error = 'Tên đăng nhập hoặc mật khẩu không chính xác.';
@@ -44,24 +50,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login'])) {
     <?php include '../includes/navbar.php'; ?>
     
     <!-- Main Start -->
-    <div class="container-fluid pt-5">
-        <div class="container pb-5">
-            <h2 class="mt-5">Đăng Nhập</h2>
-            <?php if ($error): ?>
-                <div class="alert alert-danger"><?php echo $error; ?></div>
-            <?php endif; ?>
-            <form method="POST" action="">
-                <div class="form-group">
-                    <label for="tenDangNhap">Tên đăng nhập</label>
-                    <input type="text" class="form-control" id="tenDangNhap" name="tenDangNhap" required>
-                </div>
-                <div class="form-group">
-                    <label for="matKhau">Mật khẩu</label>
-                    <input type="password" class="form-control" id="matKhau" name="matKhau" required>
-                </div>
-                <button type="submit" name="login" class="btn btn-primary">Đăng Nhập</button>
-            </form>
-            <p class="mt-3">Chưa có tài khoản? <a href="register.php">Đăng ký ngay</a></p>
+    <div class="container-fluid p-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-6 border rounded p-4">
+                <h3 class="text-center">Đăng Nhập</h3>
+                <?php if ($error): ?>
+                    <div class="alert alert-danger"><?php echo $error; ?></div>
+                <?php endif; ?>
+                <form method="POST" action="">
+                    <div class="form-group">
+                        <label for="tenDangNhap">Tên đăng nhập</label>
+                        <input type="text" class="form-control" id="tenDangNhap" name="tenDangNhap" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="matKhau">Mật khẩu</label>
+                        <input type="password" class="form-control" id="matKhau" name="matKhau" required>
+                    </div>
+                    <button type="submit" name="login" class="btn btn-primary">Đăng Nhập</button>
+                </form>
+                <p class="mt-3">Chưa có tài khoản? <a href="register.php">Đăng ký ngay</a></p>
+            </div>
         </div>
     </div>
     <!-- Main End -->

@@ -61,36 +61,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['register'])) {
     <?php include '../includes/navbar.php'; ?>
     
     <!-- Main Start -->
-    <div class="container-fluid pt-5">
-        <div class="container pb-5">
-            <h2 class="mt-5">Đăng Ký</h2>
-            <?php if ($error): ?>
-                <div class="alert alert-danger"><?php echo $error; ?></div>
-            <?php endif; ?>
-            <form method="POST" action="">
-                <div class="form-group">
-                    <label for="hoTen">Họ và tên</label>
-                    <input type="text" class="form-control" id="hoTen" name="hoTen" required>
-                </div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
-                </div>
-                <div class="form-group">
-                    <label for="tenDangNhap">Tên đăng nhập</label>
-                    <input type="text" class="form-control" id="tenDangNhap" name="tenDangNhap" required>
-                </div>
-                <div class="form-group">
-                    <label for="matKhau">Mật khẩu</label>
-                    <input type="password" class="form-control" id="matKhau" name="matKhau" required>
-                </div>
-                <div class="form-group">
-                    <label for="confirmPassword">Xác nhận mật khẩu</label>
-                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
-                </div>
-                <button type="submit" name="register" class="btn btn-primary">Đăng Ký</button>
-            </form>
-            <p class="mt-3">Đã có tài khoản? <a href="login.php">Đăng nhập ngay</a></p>
+    <div class="container-fluid p-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-6 border rounded p-4">
+                <h3 class="text-center">Đăng Ký</h3>
+                <?php if ($error): ?>
+                    <div class="alert alert-danger"><?php echo $error; ?></div>
+                <?php endif; ?>
+                <form method="POST" action="">
+                    <div class="form-group">
+                        <label for="hoTen">Họ và tên</label>
+                        <input type="text" class="form-control" id="hoTen" name="hoTen" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tenDangNhap">Tên đăng nhập</label>
+                        <input type="text" class="form-control" id="tenDangNhap" name="tenDangNhap" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="matKhau">Mật khẩu</label>
+                        <input type="password" class="form-control" id="matKhau" name="matKhau" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Xác nhận mật khẩu</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                    <button type="submit" name="register" class="btn btn-primary">Đăng Ký</button>
+                </form>
+                <p class="mt-3">Đã có tài khoản? <a href="login.php">Đăng nhập ngay</a></p>
+            </div>
         </div>
     </div>
     <!-- Main End -->
