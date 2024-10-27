@@ -8,24 +8,22 @@ if (!isset($_SESSION['MaNguoiDung'])) {
 
 include '../database/db.php';
 
-// Lấy danh sách các chương học
 $stmt = $conn->prepare("SELECT * FROM ChuongHoc ORDER BY ThuTu ASC");
 $stmt->execute();
-$chuongHoc = $stmt->fetchAll();
+$chuongHoc = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Lấy danh sách các bài học và video tương ứng
 $chuongBaiHoc = [];
 foreach ($chuongHoc as $chuong) {
     $stmt = $conn->prepare("SELECT * FROM BaiHoc WHERE MaChuong = :maChuong ORDER BY ThuTu ASC");
-    $stmt->bindParam(':maChuong', $chuong['MaChuong']);
+    $stmt->bindParam(':maChuong', $chuong['MaChuong'], PDO::PARAM_INT);
     $stmt->execute();
-    $baiHoc = $stmt->fetchAll();
+    $baiHoc = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($baiHoc as $bai) {
         $stmt = $conn->prepare("SELECT * FROM VideoBaiHoc WHERE MaBaiHoc = :maBaiHoc ORDER BY MaVideo ASC");
-        $stmt->bindParam(':maBaiHoc', $bai['MaBaiHoc']);
+        $stmt->bindParam(':maBaiHoc', $bai['MaBaiHoc'], PDO::PARAM_INT);
         $stmt->execute();
-        $videos = $stmt->fetchAll();
+        $videos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $chuongBaiHoc[$chuong['TenChuong']][] = [
             'TenBai' => $bai['TenBai'],
@@ -41,7 +39,7 @@ foreach ($chuongHoc as $chuong) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Bài giảng</title>
+    <title>Video Bài Giảng</title>
 
     <?php include '../includes/styles.php'; ?>
     
@@ -54,36 +52,28 @@ foreach ($chuongHoc as $chuong) {
         <div class="container pb-5">
             <h1 class="text-center mb-4">Danh sách video bài giảng</h1>
             
-            <?php foreach ($chuongBaiHoc as $tenChuong => $baiHocs): ?>
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h3><?php echo $tenChuong; ?></h3>
+            <!-- Hiển thị danh sách chương học và bài học -->
+            <?php if (!empty($chuongBaiHoc)): ?>
+                <?php foreach ($chuongBaiHoc as $tenChuong => $baiHocs): ?>
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5><?= htmlspecialchars($tenChuong); ?></h5>
+                        </div>
+                        <ul class="list-group">
+                            <?php foreach ($baiHocs as $baiHoc): ?>
+                                <?php foreach ($baiHoc['Videos'] as $video): ?>
+                                    <li class="list-group-item">
+                                        <a href="<?= htmlspecialchars($video['DuongDanVideo']); ?>" target="_blank" class="text-primary">
+                                            <strong><?= htmlspecialchars($baiHoc['TenBai']); ?></strong>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        </ul>
                     </div>
-                    <div class="card-body">
-                        <?php foreach ($baiHocs as $baiHoc): ?>
-                            <div class="mb-4">
-                                <ul class="list-group">
-                                    <?php foreach ($baiHoc['Videos'] as $video): ?>
-                                        <li class="list-group-item">
-                                            <div class="row">
-                                                <div class="col-md-8">
-                                                    <strong><?php echo $video['TieuDe']; ?></strong>
-                                                </div>
-                                                <div class="col-md-4 text-right">
-                                                    <a href="<?php echo $video['DuongDanVideo']; ?>" class="btn btn-primary" target="_blank">Xem video</a>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-
-            <?php if (empty($chuongBaiHoc)): ?>
-                <p>Hiện tại chưa có video bài giảng nào.</p>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p class="text-center">Hiện tại chưa có video bài giảng nào.</p>
             <?php endif; ?>
         </div>
     </div>

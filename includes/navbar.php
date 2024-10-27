@@ -16,9 +16,9 @@
                 <div class="nav-item dropdown">
                     <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Luyện tập</a>
                     <div class="dropdown-menu rounded-0 m-0">
-                        <a href="#" class="dropdown-item">Bài luyện tập</a>
+                        <a href="#" class="dropdown-item">Bài tập tự luận</a>
+                        <a href="../public/quiz.php" class="dropdown-item">Bài tập trắc nghiệm</a>
                         <a href="../public/solutions.php" class="dropdown-item">Giải bài tập SGK</a>
-                        <a href="#" class="dropdown-item">Làm bài kiểm tra</a>
                     </div>
                 </div>
                 <a href="contact.html" class="nav-item nav-link">Liên hệ</a>
