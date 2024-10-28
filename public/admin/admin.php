@@ -1,3 +1,15 @@
+<?php
+session_start();
+
+if (!isset($_SESSION['MaNguoiDung'])) {
+    header('Location: login.php');
+    exit();
+}
+
+include '../../database/db.php';
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,7 +21,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>SB Admin 2 - Dashboard</title>
+    <title>Admin</title>
 
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
@@ -31,21 +43,21 @@
         <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
             <!-- Sidebar - Brand -->
-            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="../../public/admin/admin.php">
                 <div class="sidebar-brand-icon rotate-n-15">
                     <i class="fas fa-laugh-wink"></i>
                 </div>
-                <div class="sidebar-brand-text mx-3">SB Admin <sup>2</sup></div>
+                <div class="sidebar-brand-text mx-3">Admin</div>
             </a>
 
             <!-- Divider -->
             <hr class="sidebar-divider my-0">
 
-            <!-- Nav Item - Dashboard -->
+            <!-- Nav Item - Quản Lý Doanh Thu -->
             <li class="nav-item active">
                 <a class="nav-link" href="index.html">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
-                    <span>Dashboard</span></a>
+                    <span>Quản Lý Doanh Thu</span></a>
             </li>
 
             <!-- Divider -->
@@ -53,7 +65,7 @@
 
             <!-- Heading -->
             <div class="sidebar-heading">
-                Interface
+                Quản Lý Dữ Liệu
             </div>
 
             <!-- Nav Item - Pages Collapse Menu -->
@@ -61,32 +73,102 @@
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
                     aria-expanded="true" aria-controls="collapseTwo">
                     <i class="fas fa-fw fa-cog"></i>
-                    <span>Components</span>
+                    <span>Dữ Liệu</span>
                 </a>
                 <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Custom Components:</h6>
-                        <a class="collapse-item" href="buttons.html">Buttons</a>
-                        <a class="collapse-item" href="cards.html">Cards</a>
+                        <h6 class="collapse-header">Danh sách các dữ liệu</h6>
+                        <?php
+                            // Hàm chuyển đổi tên bảng từ không dấu sang có dấu
+                            function convertTableName($tableName) {
+                                // Thay thế dấu gạch dưới bằng khoảng trắng
+                                // Cú pháp nếu bảng có dấu gạch dưới, nhưng theo yêu cầu không có gạch dưới
+                                // Viết hoa chữ cái đầu tiên của mỗi từ
+                                switch ($tableName) {
+                                    case 'baigiai':
+                                        return 'Bài Giải';
+                                    case 'baihoc':
+                                        return 'Bài Học';
+                                    case 'cauhoitracnghiem':
+                                        return 'Câu Hỏi Trắc Nghiệm';
+                                    case 'cauhoituluan':
+                                        return 'Câu Hỏi Tự Luận';
+                                    case 'cautraloi':
+                                        return 'Câu Trả Lời';
+                                    case 'chuonghoc':
+                                        return 'Chương Học';
+                                    case 'lythuyet':
+                                        return 'Lý Thuyết';
+                                    case 'dangkythanhvien':
+                                        return 'Đăng Ký Thành Viên';
+                                    case 'nguoidung':
+                                        return 'Người Dùng';
+                                    case 'thanhtoan':
+                                        return 'Thanh Toán';
+                                    case 'tiendohoctap':
+                                        return 'Tiến Độ Học Tập';
+                                    case 'videobaihoc':
+                                        return 'Video Bài Học';
+                                    
+                                    default:
+                                        // Nếu không có tên nào khớp, trả về tên gốc với viết hoa chữ cái đầu
+                                        return ucwords(str_replace('', ' ', $tableName));
+                                }
+                            }
+
+                            try {
+                                $stmt = $conn->query("SHOW TABLES");
+                                $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                            } catch (PDOException $e) {
+                                echo "Lỗi khi lấy danh sách bảng: " . $e->getMessage();
+                            }
+
+                            // Danh sách các bảng không hiển thị
+                            $excludeTables = ['dangkythanhvien', 'nguoidung', 'tiendohoctap', 'thanhtoan', 'cautraloi'];
+
+                            // Hiển thị tên các bảng trong dropdown
+                            if ($tables): ?>
+                                <?php foreach ($tables as $table): ?>
+                                    <?php
+                                        // Kiểm tra xem bảng có nằm trong danh sách loại bỏ không
+                                        if (!in_array($table, $excludeTables)): ?>
+                                            <a class="collapse-item" href="view_data.php?table=<?php echo htmlspecialchars($table); ?>">
+                                                <?php echo htmlspecialchars(convertTableName($table)); ?>
+                                            </a>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <p class="collapse-item">Không có bảng nào trong cơ sở dữ liệu.</p>
+                            <?php endif; ?>
                     </div>
                 </div>
             </li>
+
+
+            <?php
+            // Lấy tên bảng từ URL (nếu có)
+            $selectedTable = isset($_GET['table']) ? $_GET['table'] : null;
+            ?>
 
             <!-- Nav Item - Utilities Collapse Menu -->
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities"
                     aria-expanded="true" aria-controls="collapseUtilities">
                     <i class="fas fa-fw fa-wrench"></i>
-                    <span>Utilities</span>
+                    <span>Thao Tác</span>
                 </a>
                 <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities"
                     data-parent="#accordionSidebar">
+                    <!-- Nút thao tác cho bảng đã chọn -->
                     <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Custom Utilities:</h6>
-                        <a class="collapse-item" href="utilities-color.html">Colors</a>
-                        <a class="collapse-item" href="utilities-border.html">Borders</a>
-                        <a class="collapse-item" href="utilities-animation.html">Animations</a>
-                        <a class="collapse-item" href="utilities-other.html">Other</a>
+                        <?php if ($selectedTable): ?>
+                            <h6 class="collapse-header">Thao Tác Với Bảng: <?php echo htmlspecialchars(convertTableName($selectedTable)); ?></h6>
+                            <a class="collapse-item" href="add_data.php?table=<?php echo htmlspecialchars($selectedTable); ?>">Thêm Dữ Liệu</a> |
+                            <a class="collapse-item" href="edit_data.php?table=<?php echo htmlspecialchars($selectedTable); ?>">Sửa Dữ Liệu</a> |
+                            <a class="collapse-item" href="delete_data.php?table=<?php echo htmlspecialchars($selectedTable); ?>">Xóa Dữ Liệu</a>
+                        <?php else: ?>
+                            <p class="collapse-item">Vui lòng chọn một bảng để thao tác.</p>
+                        <?php endif; ?>
                     </div>
                 </div>
             </li>
@@ -96,7 +178,7 @@
 
             <!-- Heading -->
             <div class="sidebar-heading">
-                Addons
+                Quản Lý Người Dùng
             </div>
 
             <!-- Nav Item - Pages Collapse Menu -->
@@ -170,7 +252,7 @@
                     <form
                         class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
                         <div class="input-group">
-                            <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."
+                            <input type="text" class="form-control bg-light border-0 small" placeholder="Tìm kiếm..."
                                 aria-label="Search" aria-describedby="basic-addon2">
                             <div class="input-group-append">
                                 <button class="btn btn-primary" type="button">
@@ -207,7 +289,7 @@
                             </div>
                         </li>
 
-                        <!-- Nav Item - Alerts -->
+                        <!-- Nav Item - Thông báo -->
                         <li class="nav-item dropdown no-arrow mx-1">
                             <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -219,7 +301,7 @@
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="alertsDropdown">
                                 <h6 class="dropdown-header">
-                                    Alerts Center
+                                    Thông báo
                                 </h6>
                                 <a class="dropdown-item d-flex align-items-center" href="#">
                                     <div class="mr-3">
@@ -258,7 +340,7 @@
                             </div>
                         </li>
 
-                        <!-- Nav Item - Messages -->
+                        <!-- Nav Item - Thư -->
                         <li class="nav-item dropdown no-arrow mx-1">
                             <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -270,7 +352,7 @@
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="messagesDropdown">
                                 <h6 class="dropdown-header">
-                                    Message Center
+                                    Tin nhắn/Thư
                                 </h6>
                                 <a class="dropdown-item d-flex align-items-center" href="#">
                                     <div class="dropdown-list-image mr-3">
@@ -334,25 +416,25 @@
                                 <img class="img-profile rounded-circle"
                                     src="img/undraw_profile.svg">
                             </a>
-                            <!-- Dropdown - User Information -->
+                            <!-- Dropdown - Thông tin admin -->
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="userDropdown">
                                 <a class="dropdown-item" href="#">
                                     <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Profile
+                                    Thông tin cá nhân
                                 </a>
                                 <a class="dropdown-item" href="#">
                                     <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Settings
+                                   Cài đặt
                                 </a>
                                 <a class="dropdown-item" href="#">
                                     <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Activity Log
+                                    Hoạt động
                                 </a>
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
                                     <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Logout
+                                    Đăng xuất
                                 </a>
                             </div>
                         </li>
@@ -367,22 +449,22 @@
 
                     <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+                        <h1 class="h3 mb-0 text-gray-800">Doanh Thu</h1>
                         <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i
-                                class="fas fa-download fa-sm text-white-50"></i> Generate Report</a>
+                                class="fas fa-download fa-sm text-white-50"></i> In báo cáo</a>
                     </div>
 
                     <!-- Content Row -->
                     <div class="row">
 
-                        <!-- Earnings (Monthly) Card Example -->
+                        <!-- Doanh thu theo tháng -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-primary shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
                                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                                Earnings (Monthly)</div>
+                                                Doanh thu theo tháng</div>
                                             <div class="h5 mb-0 font-weight-bold text-gray-800">$40,000</div>
                                         </div>
                                         <div class="col-auto">
@@ -393,14 +475,14 @@
                             </div>
                         </div>
 
-                        <!-- Earnings (Monthly) Card Example -->
+                        <!-- Doanh Thu Theo Năm -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-success shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
                                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                                Earnings (Annual)</div>
+                                                Doanh thu theo năm</div>
                                             <div class="h5 mb-0 font-weight-bold text-gray-800">$215,000</div>
                                         </div>
                                         <div class="col-auto">
@@ -411,13 +493,13 @@
                             </div>
                         </div>
 
-                        <!-- Earnings (Monthly) Card Example -->
+                        <!-- Chỉ Tiêu -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-info shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tasks
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Chỉ tiêu
                                             </div>
                                             <div class="row no-gutters align-items-center">
                                                 <div class="col-auto">
@@ -440,14 +522,14 @@
                             </div>
                         </div>
 
-                        <!-- Pending Requests Card Example -->
+                        <!-- Yêu cầu cần xử lý -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-warning shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
                                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                                Pending Requests</div>
+                                                Yêu cầu cần xử lý</div>
                                             <div class="h5 mb-0 font-weight-bold text-gray-800">18</div>
                                         </div>
                                         <div class="col-auto">
@@ -469,7 +551,7 @@
                                 <!-- Card Header - Dropdown -->
                                 <div
                                     class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                    <h6 class="m-0 font-weight-bold text-primary">Earnings Overview</h6>
+                                    <h6 class="m-0 font-weight-bold text-primary">Tổng quan về thu nhập</h6>
                                     <div class="dropdown no-arrow">
                                         <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -500,7 +582,7 @@
                                 <!-- Card Header - Dropdown -->
                                 <div
                                     class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                    <h6 class="m-0 font-weight-bold text-primary">Revenue Sources</h6>
+                                    <h6 class="m-0 font-weight-bold text-primary">Nguồn doanh thu</h6>
                                     <div class="dropdown no-arrow">
                                         <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -546,7 +628,7 @@
                             <!-- Project Card Example -->
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3">
-                                    <h6 class="m-0 font-weight-bold text-primary">Projects</h6>
+                                    <h6 class="m-0 font-weight-bold text-primary">Dự Án</h6>
                                 </div>
                                 <div class="card-body">
                                     <h4 class="small font-weight-bold">Server Migration <span
@@ -657,7 +739,7 @@
                             <!-- Illustrations -->
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3">
-                                    <h6 class="m-0 font-weight-bold text-primary">Illustrations</h6>
+                                    <h6 class="m-0 font-weight-bold text-primary">Minh Họa</h6>
                                 </div>
                                 <div class="card-body">
                                     <div class="text-center">
@@ -723,15 +805,15 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Ready to Leave?</h5>
+                    <h5 class="modal-title" id="exampleModalLabel">Đăng xuất ?</h5>
                     <button class="close" type="button" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
-                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-body">Bạn chắc chắn muốn đăng xuất ?</div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
-                    <a class="btn btn-primary" href="login.html">Logout</a>
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Hủy</button>
+                    <a class="btn btn-primary" href="../../public/login.php">Đăng Xuất</a>
                 </div>
             </div>
         </div>
