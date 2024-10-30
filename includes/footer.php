@@ -1,3 +1,22 @@
+<?php
+include '../database/db.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $ten = $_POST['ten'];
+    $noi_dung = $_POST['noidung'];
+
+    $stmt = $conn->prepare("INSERT INTO PhanHoi (Ten, NoiDung) VALUES (:ten, :noidung)");
+    $stmt->bindParam(':ten', $ten);
+    $stmt->bindParam(':noidung', $noi_dung);
+    
+    if ($stmt->execute()) {
+        $success_message = 'Gửi phản hồi thành công!';
+    } else {
+        $success_message = 'Đã xảy ra lỗi khi gửi phản hồi.';
+    }
+}
+?>
+
 <!-- Footer Start -->
 <div class="container-fluid bg-secondary text-white py-5 px-sm-3 px-md-5">
     <div class="row pt-5">
@@ -53,13 +72,12 @@
         </div>
         <div class="col-lg-3 col-md-6 mb-5">
             <h3 class="text-primary mb-4">Phản hồi</h3>
-            <form action="">
+            <form action="../public/" method="POST">
                 <div class="form-group">
-                    <input type="text" class="form-control border-0 py-4" placeholder="Nhập tên" required="required" />
+                    <input type="text" class="form-control border-0 py-4" name="ten" placeholder="Nhập tên" required="required" />
                 </div>
                 <div class="form-group">
-                    <!-- <input type="text" class="form-control border-0 py-4" placeholder="Nội dung" required="required" /> -->
-                    <textarea class="form-control border-0 py-4" placeholder="Nội dung"></textarea>
+                    <textarea class="form-control border-0 py-4" name="noidung" placeholder="Nội dung" required="required"></textarea>
                 </div>
                 <div>
                     <button class="btn btn-primary btn-block border-0 py-3" type="submit">Gửi</button>
