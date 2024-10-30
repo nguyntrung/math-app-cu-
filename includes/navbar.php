@@ -16,7 +16,7 @@
                 <div class="nav-item dropdown">
                     <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Luyện tập</a>
                     <div class="dropdown-menu rounded-0 m-0">
-                        <a href="#" class="dropdown-item">Bài tập tự luận</a>
+                        <a href="../public/essay.php" class="dropdown-item">Bài tập tự luận</a>
                         <a href="../public/quiz.php" class="dropdown-item">Bài tập trắc nghiệm</a>
                         <a href="../public/solutions.php" class="dropdown-item">Giải bài tập SGK</a>
                     </div>
@@ -25,8 +25,17 @@
                 <a href="about.html" class="nav-item nav-link">Về chúng tôi</a>
             </div>
             <?php if (isset($_SESSION['HoTen'])): ?>
-                <span class="navbar-text">Xin chào, <?php echo $_SESSION['HoTen']; ?></span>
-                <a href="logout.php" class="btn"><i class="fa-solid fa-right-from-bracket text-danger"></i></a>
+                <div class="nav-item dropdown">
+                    <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">
+                        <i class="fa-solid fa-user"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <span class="dropdown-item disabled"><?php echo htmlspecialchars($_SESSION['HoTen']); ?></span>
+                        <div class="dropdown-divider"></div>
+                        <a href="profile.php" class="dropdown-item">Hồ sơ</a>
+                        <a href="logout.php" class="dropdown-item text-danger">Đăng xuất</a>
+                    </div>
+                </div>
             <?php else: ?>
                 <a href="login.php" class="btn btn-primary px-4">Đăng nhập</a>
             <?php endif; ?>

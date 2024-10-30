@@ -51,7 +51,7 @@ foreach ($chuongBaiHocList as $row) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Danh sách bài giảng</title>
+    <title>Danh sách bài học theo chương</title>
 
     <?php include '../includes/styles.php'; ?>
 </head>
@@ -73,7 +73,7 @@ foreach ($chuongBaiHocList as $row) {
                             <?php if (!empty($chuong['baiHocList'])): ?>
                                 <?php foreach ($chuong['baiHocList'] as $baiHoc): ?>
                                     <li class="list-group-item">
-                                        <a href="video_lessons_detail.php?maBaiHoc=<?= $baiHoc['maBaiHoc']; ?>" class="text-primary">
+                                        <a href="essay_detail.php?maBaiHoc=<?= $baiHoc['maBaiHoc']; ?>" class="text-primary">
                                             <strong><?= htmlspecialchars($baiHoc['tenBaiHoc']); ?></strong>
                                         </a>
                                     </li>
