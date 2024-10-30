@@ -52,14 +52,14 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-5">
-            <h3 class="text-primary mb-4">Bản tin</h3>
+            <h3 class="text-primary mb-4">Phản hồi</h3>
             <form action="">
                 <div class="form-group">
-                    <input type="text" class="form-control border-0 py-4" placeholder="Your Name" required="required" />
+                    <input type="text" class="form-control border-0 py-4" placeholder="Nhập tên" required="required" />
                 </div>
                 <div class="form-group">
-                    <input type="email" class="form-control border-0 py-4" placeholder="Your Email"
-                        required="required" />
+                    <!-- <input type="text" class="form-control border-0 py-4" placeholder="Nội dung" required="required" /> -->
+                    <textarea class="form-control border-0 py-4" placeholder="Nội dung"></textarea>
                 </div>
                 <div>
                     <button class="btn btn-primary btn-block border-0 py-3" type="submit">Gửi</button>
