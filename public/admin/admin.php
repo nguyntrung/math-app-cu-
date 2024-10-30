@@ -167,7 +167,7 @@ include '../../database/db.php';
                             <a class="collapse-item" href="edit_data.php?table=<?php echo htmlspecialchars($selectedTable); ?>">Sửa Dữ Liệu</a> |
                             <a class="collapse-item" href="delete_data.php?table=<?php echo htmlspecialchars($selectedTable); ?>">Xóa Dữ Liệu</a>
                         <?php else: ?>
-                            <p class="collapse-item">Vui lòng chọn một bảng để thao tác.</p>
+                            <p class="collapse-item">Vui lòng chọn bảng  <br> để thao tác.</p>
                         <?php endif; ?>
                     </div>
                 </div>

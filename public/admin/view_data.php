@@ -9,61 +9,137 @@ if (!isset($_SESSION['MaNguoiDung'])) {
 $user = $_SESSION['HoTen'];
 include '../../database/db.php';
 
-// Xử lý thêm dữ liệu
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['Ma'])) {
-    try {
-        $columns = array_keys($_POST);
-        $values = array_values($_POST);
-        $placeholders = array_fill(0, count($values), '?');
+$selectedTable = isset($_GET['table']) ? $_GET['table'] : null;
 
-        $sql = "INSERT INTO " . htmlspecialchars($selectedTable) . " (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
-        $stmt = $db->prepare($sql);
-        $stmt->execute($values);
-        echo "<script>alert('Thêm dữ liệu thành công!');</script>";
+$message = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['addData'])) {
+    // Thêm dữ liệu
+    try {
+        $table = htmlspecialchars($selectedTable);
+        $stmt = $conn->query("DESCRIBE $table");
+        $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $sql = "INSERT INTO $table (" . implode(", ", $columns) . ") VALUES (:" . implode(", :", $columns) . ")";
+        $stmt = $conn->prepare($sql);
+
+        foreach ($columns as $column) {
+            if (isset($_POST[$column])) {
+                $stmt->bindValue(":" . $column, $_POST[$column]);
+            }
+        }
+
+        $stmt->execute();
+        $message = "Thêm dữ liệu thành công!";
     } catch (PDOException $e) {
-        echo "<script>alert('Lỗi khi thêm dữ liệu: " . $e->getMessage() . "');</script>";
+        $message = "Lỗi khi thêm dữ liệu: " . $e->getMessage();
     }
 }
 
-// Xử lý sửa dữ liệu
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit'])) {
+// Sửa dữ liệu
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['editData'])) {
     try {
-        $ma = $_POST['Ma'];
+        $id = $_POST['Ma']; // Khóa chính
         $setPart = '';
-        foreach ($_POST as $key => $value) {
-            if ($key !== 'edit' && $key !== 'Ma') {
-                $setPart .= "$key = :$key, ";
+
+        // Lấy tên cột chính
+        $stmt = $conn->query("SHOW COLUMNS FROM " . htmlspecialchars($selectedTable));
+        $primaryKeyColumn = null;
+
+        // Xác định cột khóa chính
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if ($row['Key'] === 'PRI') {
+                $primaryKeyColumn = $row['Field'];
+                break;
             }
         }
-        $setPart = rtrim($setPart, ', ');
 
-        $sql = "UPDATE " . htmlspecialchars($selectedTable) . " SET $setPart WHERE Ma = :ma";
-        $stmt = $db->prepare($sql);
-        $stmt->bindParam(':ma', $ma);
+        // Kiểm tra nếu không tìm thấy cột khóa chính
+        if (!$primaryKeyColumn) {
+            throw new Exception("Không tìm thấy cột khóa chính trong bảng.");
+        }
 
+        // Tạo phần SET cho câu truy vấn
         foreach ($_POST as $key => $value) {
-            if ($key !== 'edit' && $key !== 'Ma') {
-                $stmt->bindParam(":$key", $value);
+            if ($key !== 'editData' && $key !== 'Ma') {
+                $setPart .= "`$key` = :$key, ";
             }
         }
-        $stmt->execute();
-        echo "<script>alert('Sửa dữ liệu thành công!');</script>";
+
+        // Xóa dấu phẩy cuối cùng nếu nó tồn tại
+        $setPart = rtrim($setPart, ', '); // Bỏ dấu phẩy cuối cùng
+
+        // Kiểm tra nếu không có cột nào được cập nhật
+        if (empty($setPart)) {
+            throw new Exception("Không có dữ liệu nào để cập nhật.");
+        }
+
+        // Câu truy vấn UPDATE
+        $sql = "UPDATE " . htmlspecialchars($selectedTable) . " SET $setPart WHERE `$primaryKeyColumn` = :id"; 
+        $stmt = $conn->prepare($sql);
+        
+        // Gán giá trị cho khóa chính
+        $stmt->bindParam(':id', $id); 
+
+        // Gán giá trị cho các tham số trong phần SET
+        foreach ($_POST as $key => $value) {
+            if ($key !== 'editData' && $key !== 'Ma') {
+                $stmt->bindValue(":$key", $value);
+            }
+        }
+
+        // Thực thi câu truy vấn
+        if ($stmt->execute()) {
+            if ($stmt->rowCount() > 0) {
+                $message = "Sửa dữ liệu thành công!";
+            } else {
+                $message = "Không có bản ghi nào được cập nhật.";
+            }
+        } else {
+            $message = "Lỗi khi sửa dữ liệu: " . $stmt->errorInfo()[2];
+        }
     } catch (PDOException $e) {
-        echo "<script>alert('Lỗi khi sửa dữ liệu: " . $e->getMessage() . "');</script>";
+        $message = "Lỗi khi sửa dữ liệu: " . $e->getMessage();
+    } catch (Exception $e) {
+        $message = "Lỗi: " . $e->getMessage();
     }
 }
 
-// Xử lý xóa dữ liệu
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['deleteData'])) {
+    // Xóa dữ liệu
     try {
-        $ma = $_POST['deleteMa'];
-        $sql = "DELETE FROM " . htmlspecialchars($selectedTable) . " WHERE Ma = :ma";
-        $stmt = $db->prepare($sql);
-        $stmt->bindParam(':ma', $ma);
+        $id = $_POST['deleteMa']; 
+
+        // Lấy tên cột chính
+        $stmt = $conn->query("SHOW COLUMNS FROM " . htmlspecialchars($selectedTable));
+        $primaryKeyColumn = null;
+
+        // Xác định cột khóa chính
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if ($row['Key'] === 'PRI') {
+                $primaryKeyColumn = $row['Field'];
+                break;
+            }
+        }
+
+        $sql = "DELETE FROM " . htmlspecialchars($selectedTable) . " WHERE $primaryKeyColumn = :id"; 
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(':id', $id); 
+
         $stmt->execute();
-        echo "<script>alert('Xóa dữ liệu thành công!');</script>";
+        $message = "Xóa dữ liệu thành công!";
     } catch (PDOException $e) {
-        echo "<script>alert('Lỗi khi xóa dữ liệu: " . $e->getMessage() . "');</script>";
+        $message = "Lỗi khi xóa dữ liệu: " . $e->getMessage();
+    }
+}
+
+$data = [];
+if ($selectedTable) {
+    try {
+        $stmt = $conn->prepare("SELECT * FROM " . htmlspecialchars($selectedTable));
+        $stmt->execute();
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        $message = "Lỗi khi lấy dữ liệu: " . $e->getMessage();
     }
 }
 ?>
@@ -79,18 +155,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
 </head>
-
 <style>
-    .collapse-inner {
-        max-height: 300px;
-        overflow-y: auto;
-    }
+.collapse-inner {
+    max-height: 300px;
+    overflow-y: auto;
+}
 </style>
 
 <body id="page-top">
-
     <div id="wrapper">
-
         <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="admin.php">
                 <div class="sidebar-brand-icon rotate-n-15">
@@ -100,7 +173,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
             </a>
             <hr class="sidebar-divider">
             <div class="sidebar-heading">Quản Lý Dữ Liệu</div>
-
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
                     aria-expanded="true" aria-controls="collapseTwo">
@@ -138,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                                 case 'videobaihoc':
                                     return 'Video Bài Học';
                                 default:
-                                    return ucwords(str_replace('', ' ', $tableName));
+                                    return ucwords(str_replace('_', ' ', $tableName));
                             }
                         }
 
@@ -152,25 +224,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                         $excludeTables = ['dangkythanhvien', 'nguoidung', 'tiendohoctap', 'thanhtoan', 'cautraloi'];
 
                         if ($tables): ?>
-                            <?php foreach ($tables as $table): ?>
-                                <?php
-                                if (!in_array($table, $excludeTables)): ?>
-                                    <a class="collapse-item" href="view_data.php?table=<?php echo htmlspecialchars($table); ?>">
-                                        <?php echo htmlspecialchars(convertTableName($table)); ?>
-                                    </a>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
+                        <?php foreach ($tables as $table): ?>
+                        <?php if (!in_array($table, $excludeTables)): ?>
+                        <a class="collapse-item" href="view_data.php?table=<?php echo htmlspecialchars($table); ?>">
+                            <?php echo htmlspecialchars(convertTableName($table)); ?>
+                        </a>
+                        <?php endif; ?>
+                        <?php endforeach; ?>
                         <?php else: ?>
-                            <p class="collapse-item">Không có bảng nào trong cơ sở dữ liệu.</p>
+                        <p class="collapse-item">Không có bảng nào trong cơ sở dữ liệu.</p>
                         <?php endif; ?>
                     </div>
                 </div>
             </li>
-
-            <?php
-            $selectedTable = isset($_GET['table']) ? $_GET['table'] : null;
-            ?>
-
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities"
                     aria-expanded="true" aria-controls="collapseUtilities">
@@ -181,17 +247,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded" style="max-height: 300px; overflow-y: auto;">
                         <?php if ($selectedTable): ?>
-                            <h6 class="collapse-header">Bảng <?php echo htmlspecialchars(convertTableName($selectedTable)); ?></h6>
-                            <a class="collapse-item" href="#addData" data-toggle="modal">Thêm Dữ Liệu</a>
-                            <a class="collapse-item" href="#editData" data-toggle="modal">Sửa Dữ Liệu</a>
-                            <a class="collapse-item" href="#deleteData" data-toggle="modal">Xóa Dữ Liệu</a>
-                        <?php else: ?>
-                            <p class="collapse-item">Vui lòng chọn một bảng để thao tác.</p>
+                        <h6 class="collapse-header">Bảng
+                            <?php echo htmlspecialchars(convertTableName($selectedTable)); ?></h6>
+                        <a class="collapse-item" data-toggle="modal" data-target="#addModal">Thêm dữ liệu</a>
+                        <a class="collapse-item" data-toggle="modal" data-target="#editModal">Sửa dữ liệu</a>
+                        <a class="collapse-item" data-toggle="modal" data-target="#deleteModal">Xóa dữ liệu</a>
                         <?php endif; ?>
                     </div>
                 </div>
             </li>
-
             <li class="nav-item">
                 <a class="nav-link" href="admin.php">
                     <i class="fas fa-fw fa-sign-out-alt"></i>
@@ -201,217 +265,231 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
         </ul>
 
         <div id="content-wrapper" class="d-flex flex-column">
-
             <div id="content">
-
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                    <ul class="navbar-nav ml-auto">
-                        <li class="nav-item dropdown no-arrow">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
-                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small"><?php echo $user?></span>
-                                <img class="img-profile rounded-circle" src="img/undraw_profile.svg">
-                            </a>
-                        </li>
-                    </ul>
+                    <h2><?php echo htmlspecialchars($selectedTable ? convertTableName($selectedTable) : 'Chọn bảng'); ?>
+                    </h2>
                 </nav>
 
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800">Dữ Liệu Bảng <?php echo htmlspecialchars(convertTableName($selectedTable)); ?> </h1>
-                    <?php
-                    $dsn = 'mysql:host=localhost;dbname=quanlyhoctoan';
-                    $username = 'root';
-                    $password = '';
+                    <?php if ($message): ?>
+                    <div class="alert alert-info"><?php echo $message; ?></div>
+                    <?php endif; ?>
 
-                    try {
-                        $db = new PDO($dsn, $username, $password);
-                        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-                        $selectedTable = isset($_GET['table']) ? $_GET['table'] : null;
-
-                        if ($selectedTable) {
-                            $stmt = $db->prepare("SHOW COLUMNS FROM " . htmlspecialchars($selectedTable));
-                            $stmt->execute();
-                            $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-                            $hasMaChuong = in_array('MaChuong', $columns);
-                            $hasMaBaiHoc = in_array('MaBaiHoc', $columns);
-
-                            $joinQuery = "SELECT " . htmlspecialchars($selectedTable) . ".*";
-                            if ($hasMaChuong) {
-                                $joinQuery .= ", ch.TenChuong";
-                            }
-                            if ($hasMaBaiHoc) {
-                                $joinQuery .= ", bh.TenBai";
-                            }
-                            $joinQuery .= " FROM " . htmlspecialchars($selectedTable);
-                            if ($hasMaChuong) {
-                                $joinQuery .= " LEFT JOIN chuonghoc AS ch ON " . htmlspecialchars($selectedTable) . ".MaChuong = ch.MaChuong";
-                            }
-                            if ($hasMaBaiHoc) {
-                                $joinQuery .= " LEFT JOIN baihoc AS bh ON " . htmlspecialchars($selectedTable) . ".MaBaiHoc = bh.MaBaiHoc";
-                            }
-
-                            try {
-                                $stmt = $db->prepare($joinQuery);
-                                $stmt->execute();
-                                $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                                if ($data): ?>
-                                    <table class="table table-bordered">
-                                        <thead>
-                                            <tr>
-                                                <?php foreach ($data[0] as $column => $value): ?>
-                                                    <th><?php echo htmlspecialchars(ucfirst($column)); ?></th>
-                                                <?php endforeach; ?>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($data as $row): ?>
-                                                <tr>
-                                                    <?php foreach ($row as $value): ?>
-                                                        <td><?php echo htmlspecialchars($value); ?></td>
-                                                    <?php endforeach; ?>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <?php if ($data): ?>
+                                    <?php foreach (array_keys($data[0]) as $column): ?>
+                                    <th><?php echo htmlspecialchars($column); ?></th>
+                                    <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if ($data): ?>
+                                <?php foreach ($data as $row): ?>
+                                <tr>
+                                    <?php foreach ($row as $value): ?>
+                                    <td><?php echo htmlspecialchars($value); ?></td>
+                                    <?php endforeach; ?>
+                                </tr>
+                                <?php endforeach; ?>
                                 <?php else: ?>
-                                    <p>Không có dữ liệu trong bảng này.</p>
-                                <?php endif;
-                            } catch (PDOException $e) {
-                                echo "Lỗi khi truy vấn dữ liệu: " . $e->getMessage();
+                                <tr>
+                                    <td colspan="100%">Không có dữ liệu trong bảng.</td>
+                                </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Thêm -->
+    <div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="addModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addModalLabel">Thêm Dữ Liệu</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form method="POST" action="">
+                    <div class="modal-body">
+                        <?php
+                        if ($selectedTable) {
+                            $stmt = $conn->query("DESCRIBE " . htmlspecialchars($selectedTable));
+                            $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                            foreach ($columns as $column) {
+                                echo '<div class="form-group">
+                                        <label for="' . htmlspecialchars($column) . '">' . htmlspecialchars($column) . '</label>
+                                        <input type="text" class="form-control" name="' . htmlspecialchars($column) . '" required>
+                                      </div>';
                             }
                         }
-                    } catch (PDOException $e) {
-                        echo "Lỗi kết nối: " . $e->getMessage();
+                        ?>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                        <button type="submit" class="btn btn-primary" name="addData">Thêm</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Sửa -->
+    <div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Sửa Dữ Liệu</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form method="POST" action="">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="Ma">Chọn Mã (Khóa Chính)</label>
+                            <select class="form-control" name="Ma" id="primaryKeySelect" required>
+                                <?php
+                                // Lấy tên cột khóa chính
+                                if ($selectedTable) {
+                                    $stmt = $conn->query("SHOW COLUMNS FROM " . htmlspecialchars($selectedTable));
+                                    $primaryKeyColumn = null;
+                                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                        if ($row['Key'] === 'PRI') {
+                                            $primaryKeyColumn = $row['Field'];
+                                            break;
+                                        }
+                                    }
+
+                                    if ($primaryKeyColumn) {
+                                        // Lấy dữ liệu từ bảng để chọn khóa chính
+                                        $stmt = $conn->prepare("SELECT $primaryKeyColumn FROM " . htmlspecialchars($selectedTable));
+                                        $stmt->execute();
+                                        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                        foreach ($rows as $row) {
+                                            echo '<option value="' . htmlspecialchars($row[$primaryKeyColumn]) . '">' . htmlspecialchars($row[$primaryKeyColumn]) . '</option>';
+                                        }
+                                    } else {
+                                        echo '<option disabled>Không tìm thấy cột khóa chính</option>';
+                                    }
+                                }
+                                ?>
+                            </select>
+                        </div>
+
+                        <?php
+                        // Tạo các trường dữ liệu khác
+                        if ($selectedTable) {
+                            $stmt = $conn->query("DESCRIBE " . htmlspecialchars($selectedTable));
+                            $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                            foreach ($columns as $column) {
+                                if ($column !== $primaryKeyColumn) { // Bỏ qua cột khóa chính
+                                    echo '<div class="form-group">
+                                            <label for="' . htmlspecialchars($column) . '">' . htmlspecialchars($column) . '</label>
+                                            <input type="text" class="form-control" name="' . htmlspecialchars($column) . '" id="' . htmlspecialchars($column) . '" data-column="' . htmlspecialchars($column) . '">
+                                        </div>';
+                                }
+                            }
+                        }
+                        ?>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                        <button type="submit" class="btn btn-primary" name="editData">Sửa</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    $(document).ready(function() {
+        $('#primaryKeySelect').on('change', function() {
+            var selectedId = $(this).val();
+            var tableName = "<?php echo htmlspecialchars($selectedTable); ?>"; // Lấy tên bảng hiện tại
+            $.ajax({
+                url: 'get_data.php', // Đường dẫn đến file PHP để lấy dữ liệu
+                type: 'GET',
+                data: {
+                    id: selectedId,
+                    table: tableName
+                },
+                success: function(response) {
+                    var data = JSON.parse(response);
+                    // Điền dữ liệu vào các input
+                    <?php
+                    foreach ($columns as $column) {
+                        if ($column !== $primaryKeyColumn) {
+                            echo "if (data.hasOwnProperty('" . htmlspecialchars($column) . "')) {
+                                $('#" . htmlspecialchars($column) . "').val(data['" . htmlspecialchars($column) . "']);
+                            }";
+                        }
                     }
                     ?>
-                </div>
-            </div>
-        </div>
-    </div>
+                }
+            });
+        });
+    });
+    </script>
 
-    <!-- Thêm Dữ Liệu Modal -->
-    <div class="modal fade" id="addData" tabindex="-1" role="dialog" aria-labelledby="addDataLabel" aria-hidden="true">
+    <!-- Modal Xóa -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addDataLabel">Thêm Dữ Liệu</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
+                    <h5 class="modal-title" id="deleteModalLabel">Xóa Dữ Liệu</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form action="view_data.php?table=<?php echo htmlspecialchars($selectedTable); ?>" method="POST">
-                    <div class="modal-body">
-                        <?php
-                        if ($selectedTable) {
-                            $stmt = $db->prepare("SHOW COLUMNS FROM " . htmlspecialchars($selectedTable));
-                            $stmt->execute();
-                            $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-                            foreach ($columns as $column): ?>
-                                <div class="form-group">
-                                    <label for="<?php echo htmlspecialchars($column); ?>"><?php echo htmlspecialchars(ucfirst($column)); ?></label>
-                                    <input type="text" class="form-control" id="<?php echo htmlspecialchars($column); ?>" name="<?php echo htmlspecialchars($column); ?>" required>
-                                </div>
-                            <?php endforeach; 
-                        }
-                        ?>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                        <button type="submit" class="btn btn-primary">Thêm</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Sửa Dữ Liệu Modal -->
-    <div class="modal fade" id="editData" tabindex="-1" role="dialog" aria-labelledby="editDataLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editDataLabel">Sửa Dữ Liệu</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <form action="view_data.php?table=<?php echo htmlspecialchars($selectedTable); ?>" method="POST">
+                <form method="POST" action="">
                     <div class="modal-body">
                         <div class="form-group">
-                            <label for="Ma" class="col-form-label">Mã (chọn bản ghi để sửa):</label>
-                            <select class="form-control" id="Ma" name="Ma" required>
-                                <option value="">Chọn Mã</option>
+                            <label for="deleteMa">Chọn Mã (Khóa Chính)</label>
+                            <select class="form-control" name="deleteMa" required>
                                 <?php
-                                try {
-                                    $stmt = $db->query("SELECT Ma FROM " . htmlspecialchars($selectedTable));
-                                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
-                                        <option value="<?php echo htmlspecialchars($row['Ma']); ?>"><?php echo htmlspecialchars($row['Ma']); ?></option>
-                                    <?php endwhile; 
-                                } catch (PDOException $e) {
-                                    echo "Lỗi khi truy vấn dữ liệu: " . $e->getMessage();
+                            if ($selectedTable) {
+                                // Lấy tên cột khóa chính
+                                $stmt = $conn->query("SHOW COLUMNS FROM " . htmlspecialchars($selectedTable));
+                                $primaryKeyColumn = null;
+                                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                    if ($row['Key'] === 'PRI') {
+                                        $primaryKeyColumn = $row['Field'];
+                                        break;
+                                    }
                                 }
-                                ?>
-                            </select>
-                        </div>
-                        <?php
-                        if ($selectedTable) {
-                            $stmt = $db->prepare("SHOW COLUMNS FROM " . htmlspecialchars($selectedTable));
-                            $stmt->execute();
-                            $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-                            foreach ($columns as $column): ?>
-                                <div class="form-group">
-                                    <label for="edit_<?php echo htmlspecialchars($column); ?>"><?php echo htmlspecialchars(ucfirst($column)); ?></label>
-                                    <input type="text" class="form-control" id="edit_<?php echo htmlspecialchars($column); ?>" name="edit_<?php echo htmlspecialchars($column); ?>" required>
-                                </div>
-                            <?php endforeach; 
-                        }
-                        ?>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                        <button type="submit" name="edit" class="btn btn-primary">Sửa</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Xóa Dữ Liệu Modal -->
-    <div class="modal fade" id="deleteData" tabindex="-1" role="dialog" aria-labelledby="deleteDataLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteDataLabel">Xóa Dữ Liệu</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <form action="view_data.php?table=<?php echo htmlspecialchars($selectedTable); ?>" method="POST">
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label for="deleteMa">Mã (chọn bản ghi để xóa):</label>
-                            <select class="form-control" id="deleteMa" name="deleteMa" required>
-                                <option value="">Chọn Mã</option>
-                                <?php
-                                try {
-                                    $stmt = $db->query("SELECT Ma FROM " . htmlspecialchars($selectedTable));
-                                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
-                                        <option value="<?php echo htmlspecialchars($row['Ma']); ?>"><?php echo htmlspecialchars($row['Ma']); ?></option>
-                                    <?php endwhile; 
-                                } catch (PDOException $e) {
-                                    echo "Lỗi khi truy vấn dữ liệu: " . $e->getMessage();
+                                if ($primaryKeyColumn) {
+                                    // Lấy dữ liệu từ bảng để chọn khóa chính
+                                    $stmt = $conn->prepare("SELECT $primaryKeyColumn FROM " . htmlspecialchars($selectedTable));
+                                    $stmt->execute();
+                                    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                    foreach ($rows as $row) {
+                                        echo '<option value="' . htmlspecialchars($row[$primaryKeyColumn]) . '">' . htmlspecialchars($row[$primaryKeyColumn]) . '</option>';
+                                    }
+                                } else {
+                                    echo '<option disabled>Không tìm thấy cột khóa chính</option>';
                                 }
-                                ?>
+                            }
+                            ?>
                             </select>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                        <button type="submit" name="delete" class="btn btn-danger">Xóa</button>
+                        <button type="submit" class="btn btn-danger" name="deleteData">Xóa</button>
                     </div>
                 </form>
             </div>
@@ -423,6 +501,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
     <script src="js/sb-admin-2.min.js"></script>
 </body>
+
 </html>
-
-
