@@ -58,7 +58,7 @@ foreach ($chuongBaiHocList as $row) {
 <body>
     <?php include '../includes/navbar.php'; ?>
     
-    <!-- Main Start -->
+    <!-- Phần Chính Bắt Đầu -->
     <div class="container-fluid pt-5">
         <div class="container pb-5">
             <h1 class="text-center mb-4">Danh sách bài học</h1>
@@ -73,7 +73,8 @@ foreach ($chuongBaiHocList as $row) {
                             <?php if (!empty($chuong['baiHocList'])): ?>
                                 <?php foreach ($chuong['baiHocList'] as $baiHoc): ?>
                                     <li class="list-group-item">
-                                        <a href="video_lessons_detail.php?maBaiHoc=<?= $baiHoc['maBaiHoc']; ?>" class="text-primary">
+                                        <a href="video_lessons_detail.php?maBaiHoc=<?= $baiHoc['maBaiHoc']; ?>" class="text-primary d-flex align-items-center">
+                                            <img src="../assets/img/video.png" alt="<?= htmlspecialchars($baiHoc['tenBaiHoc']); ?>" class="img-fluid mr-2" style="width: 20px;">
                                             <strong><?= htmlspecialchars($baiHoc['tenBaiHoc']); ?></strong>
                                         </a>
                                     </li>
@@ -89,11 +90,11 @@ foreach ($chuongBaiHocList as $row) {
             <?php endif; ?>
         </div>
     </div>
-    <!-- Main End -->
+    <!-- Phần Chính Kết Thúc -->
 
     <?php include '../includes/footer.php'; ?>
 
-    <!-- Back to Top -->
+    <!-- Quay Lên Trên -->
     <a href="#" class="btn btn-primary p-3 back-to-top"><i class="fa-solid fa-up-long"></i></a>
 
     <?php include '../includes/scripts.php'; ?>

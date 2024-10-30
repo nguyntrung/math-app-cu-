@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submitQuiz'])) {
         }
     }
     
-    $diem = ($soCauDung / $tongSoCau) * 10; // Tính điểm trên thang 10
+    $diem = ($soCauDung / $tongSoCau) * 10;
 }
 ?>
 

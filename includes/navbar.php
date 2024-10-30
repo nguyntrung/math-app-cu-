@@ -32,7 +32,7 @@
                     <div class="dropdown-menu dropdown-menu-right">
                         <span class="dropdown-item disabled"><?php echo htmlspecialchars($_SESSION['HoTen']); ?></span>
                         <div class="dropdown-divider"></div>
-                        <a href="profile.php" class="dropdown-item">Hồ sơ</a>
+                        <a href="profile.php" class="dropdown-item">Hồ sơ của bạn</a>
                         <a href="logout.php" class="dropdown-item text-danger">Đăng xuất</a>
                     </div>
                 </div>
